@@ -1,0 +1,36 @@
+# Build outputs
+dist/
+build/
+*.spec.bak
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+.env
+
+# Logs & temp
+*.log
+*.tmp
+mic_test.py
+bench.py
+
+# Config (contains API keys — never commit!)
+config.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

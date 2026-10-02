@@ -55,6 +55,35 @@ for d in desktops:
         except Exception as e:
             print(f"Error creating shortcut: {e}")
 
+        # Also place the setup installer script on the desktop
+        setup_bat = os.path.join(d, "Install_Chirp.bat")
+        bat_content = f"""@echo off
+title Chirp AI - Voice Dictation Setup
+color 0A
+echo ========================================================
+echo        Chirp AI - Voice Dictation Setup (GPT-4o)
+echo ========================================================
+echo.
+echo Installing Chirp to LocalAppData...
+set "TARGET_DIR=%LOCALAPPDATA%\\Chirp"
+if not exist "%TARGET_DIR%" mkdir "%TARGET_DIR%"
+
+copy /Y "{dest_exe}" "%TARGET_DIR%\\Chirp.exe" >nul
+if exist "{ico_path}" copy /Y "{ico_path}" "%TARGET_DIR%\\chirp.ico" >nul
+
+echo.
+echo [SUCCESS] Chirp AI setup is complete!
+echo Launching Chirp...
+start "" "%TARGET_DIR%\\Chirp.exe"
+exit
+"""
+        try:
+            with open(setup_bat, "w", encoding="utf-8") as f:
+                f.write(bat_content)
+            print(f"Created setup installer at {setup_bat}")
+        except Exception as e:
+            print(f"Error creating setup bat: {e}")
+
 # Start Menu Shortcut
 start_dir = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "Chirp")
 os.makedirs(start_dir, exist_ok=True)
@@ -65,7 +94,7 @@ try:
     shortcut = shell.CreateShortCut(lnk_start)
     shortcut.TargetPath = os.path.join(desktops[0] if os.path.exists(desktops[0]) else desktops[1], "Chirp.exe")
     shortcut.WorkingDirectory = os.path.dirname(shortcut.TargetPath)
-    shortcut.Description = "Chirp - AI Voice Dictation Capsule (OpenAI & Gemini)"
+    shortcut.Description = "Chirp - AI Voice Dictation Capsule (OpenAI GPT-4o & Gemini)"
     if os.path.exists(ico_path):
         shortcut.IconLocation = f"{ico_path},0"
     shortcut.save()

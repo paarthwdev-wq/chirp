@@ -13,25 +13,27 @@
 
 ## ✨ Features
 
-- 🎙️ **Instant dictation** — press F8, speak, text types itself in any focused window
-- ⚡ **Sub-1 second** latency (silence detection + Google Speech API)
-- 🌐 **Multilingual** — Hindi, Hinglish, English auto-detected
-- 🤖 **3 AI Engines** — OpenAI Whisper, Google Gemini, or Free Web Speech
-- 🔴 **Live VU meter** — animated soundwave visualizer while listening
-- 💎 **Premium glassmorphic UI** — floating pill capsule, always on top, never steals focus
-- 🔁 **Auto-restart watchdog** — never stops listening, self-heals on any error
-- ⌨️ **Works everywhere** — Notepad, Word, Chrome, VS Code, anywhere
+- 🎙️ **Instant Dictation** — press F8, speak, text types itself automatically in any active app
+- ⚡ **Sub-1 second** ultra-low latency with intelligent dynamic noise-floor calibration
+- 🧠 **OpenAI GPT-4o Audio** — state-of-the-art transcription, natural phrasing, and smart search query formatting
+- 🌐 **Multilingual Native Support** — Hindi, Hinglish, English (India/US) auto-detected
+- 🤖 **3 Selectable Engines** — OpenAI GPT-4o, Google Gemini Flash, and Zero-Config Fast Web Speech
+- 🔴 **Live Reactive VU Meter** — real-time animated soundwave reacting to mic input
+- 💎 **Luxury Glassmorphic Capsule** — non-intrusive floating pill that never steals window focus
+- 🔁 **Auto-Restart Watchdog** — 100% resilient background thread monitoring
+- ⌨️ **Universal Compatibility** — seamlessly types into Word, Notepad, VS Code, Slack, WhatsApp, Chrome, etc.
 
 ---
 
 ## 🚀 Quick Start
 
-### Download EXE (Windows)
-Download `Chirp.exe` from [Releases](../../releases) — no install needed, just run it.
+### 1. Download & Install (Windows)
+1. Run `Install_Chirp.bat` on your Desktop to install Chirp into `%LOCALAPPDATA%\Chirp`.
+2. Or simply double-click `Chirp.exe`.
 
-### Run from Source
+### 2. Run from Source
 ```bash
-pip install pyaudio SpeechRecognition pyperclip pywin32 keyboard requests
+pip install pyaudio SpeechRecognition pyperclip pywin32 keyboard requests openai
 python chirp_app.py
 ```
 
@@ -41,23 +43,24 @@ python chirp_app.py
 
 | Action | How |
 |--------|-----|
-| **Start / Stop listening** | Click the capsule or press `F8` |
-| **Switch AI engine** | Click the badge on the right (OpenAI / Gemini / Web) |
-| **Set API keys** | Right-click → API Keys Settings |
-| **Change language** | Right-click → Language |
-| **Move capsule** | Drag anywhere on screen |
+| **Start / Pause listening** | Click the capsule or press `F8` |
+| **Switch AI engine** | Click the badge on the right (`GPT-4o` / `Gemini` / `Web`) |
+| **Configure API Keys** | Right-click capsule → 🔑 API Keys Settings |
+| **Smart Search Mode** | Right-click capsule → ✓ Smart Search Optimizer Mode |
+| **Change Language** | Right-click capsule → 🌐 Language |
+| **Move Capsule** | Drag anywhere on screen |
 
 ---
 
 ## ⚙️ AI Engines
 
-| Engine | Speed | Requires |
-|--------|-------|---------|
-| **Web Speech** (default) | ~500ms | Free, no key needed |
-| **OpenAI Whisper** | ~800ms | OpenAI API key |
-| **Google Gemini** | ~1.5s | Gemini API key |
+| Engine | Speed | Capabilities | Requires |
+|--------|-------|--------------|----------|
+| **OpenAI GPT-4o** | Fast (~700ms) | Next-gen audio comprehension, auto-punctuation, smart search intent | OpenAI API Key |
+| **Fast Web Speech** | Ultra-Fast (~480ms) | Instant real-time transcription, Hindi/Hinglish/English auto-detect | Free (Zero Config) |
+| **Google Gemini** | Fast (~1.2s) | Google AI Studio Flash model | Gemini API Key |
 
-> Web Speech is recommended — it's fast, free, and handles Hindi + Hinglish perfectly.
+> **Pro Tip:** When using **GPT-4o**, enable **Smart Search Optimizer Mode** to turn spoken thoughts directly into high-intent search queries!
 
 ---
 

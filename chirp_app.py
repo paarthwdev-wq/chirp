@@ -57,7 +57,7 @@ WS_EX_TOPMOST = 0x00000008
 WS_EX_TOOLWINDOW = 0x00000080
 
 APP_NAME = "Chirp"
-APP_VERSION = "2.1.0"
+APP_VERSION = "3.0.0"
 CONFIG_FILE = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "Chirp", "config.json")
 
 # Styling
@@ -66,9 +66,9 @@ COLOR_BG_DARK = "#0B0F1A"
 COLOR_BG_HOVER = "#121828"
 COLOR_BORDER_IDLE = "#222C42"
 
-COLOR_OPENAI_ACCENT = "#10B981"  # Emerald
-COLOR_GEMINI_ACCENT = "#8B5CF6"  # Royal Violet
-COLOR_WEB_ACCENT = "#0284C7"     # Sky Blue
+COLOR_OPENAI_ACCENT = "#10B981"  # Emerald Green (GPT-4o)
+COLOR_GEMINI_ACCENT = "#8B5CF6"  # Royal Violet (Gemini)
+COLOR_WEB_ACCENT = "#0284C7"     # Sky Blue (Web Speech)
 COLOR_PROCESSING = "#38BDF8"     # Cyan
 
 COLOR_TEXT_PRIMARY = "#FFFFFF"
@@ -114,12 +114,12 @@ class ChirpApp:
         self.root.configure(bg=TRANS_KEY)
         self.root.attributes("-transparentcolor", TRANS_KEY)
 
-        self.width = 176
+        self.width = 182
         self.height = 38
         self.opacity = 0.90
         self.sound_enabled = True
         self.hotkey = "f8"
-        self.engine = "openai" # "openai", "gemini", "web"
+        self.engine = "openai" # "openai" (GPT-4o), "gemini", "web"
         self.search_mode = False
         self.language = "auto" # "auto", "hi-IN", "en-IN", "en-US"
         self.mic_index = None
@@ -321,7 +321,7 @@ class ChirpApp:
         self.save_config()
         self.render_pill()
         if eng == "openai" and not self.openai_key:
-            self.open_settings_modal("Please enter your OpenAI API Key to use OpenAI Whisper.")
+            self.open_settings_modal("Please enter your OpenAI API Key to use OpenAI GPT-4o.")
         elif eng == "gemini" and not self.gemini_key:
             self.open_settings_modal("Please enter your Gemini API Key to use Google Gemini.")
 
@@ -333,7 +333,7 @@ class ChirpApp:
 
         # Engine Selection
         self.menu.add_command(
-            label=f"{'●' if self.engine == 'openai' else '○'} Listen with OpenAI (Whisper)",
+            label=f"{'●' if self.engine == 'openai' else '○'} Listen with OpenAI (GPT-4o)",
             command=lambda: self.set_engine("openai")
         )
         self.menu.add_command(
@@ -406,40 +406,101 @@ class ChirpApp:
     # --- API Keys Dialog ---
     def open_settings_modal(self, notice=""):
         win = tk.Toplevel(self.root)
-        win.title("Chirp — AI Settings")
-        win.geometry("460x280")
+        win.title("Chirp — AI Settings (GPT-4o & Gemini)")
+        win.geometry("490x350")
         win.resizable(False, False)
         win.configure(bg="#0B0F1A")
         win.attributes("-topmost", True)
 
         win.update_idletasks()
-        x = (win.winfo_screenwidth() // 2) - 230
-        y = (win.winfo_screenheight() // 2) - 140
+        x = (win.winfo_screenwidth() // 2) - 245
+        y = (win.winfo_screenheight() // 2) - 175
         win.geometry(f"+{x}+{y}")
 
         hdr = tk.Frame(win, bg="#121828", padx=18, pady=12)
         hdr.pack(fill="x")
         tk.Label(hdr, text="Chirp AI Configuration", font=("Segoe UI", 12, "bold"), fg="#FFFFFF", bg="#121828").pack(anchor="w")
-        tk.Label(hdr, text="Configure your OpenAI & Google Gemini API Keys", font=("Segoe UI", 8), fg="#8E9BB5", bg="#121828").pack(anchor="w")
+        tk.Label(hdr, text="Configure your OpenAI (GPT-4o) & Google Gemini API Keys", font=("Segoe UI", 8), fg="#8E9BB5", bg="#121828").pack(anchor="w")
 
         body = tk.Frame(win, bg="#0B0F1A", padx=20, pady=12)
         body.pack(fill="both", expand=True)
 
         if notice:
-            tk.Label(body, text=notice, font=("Segoe UI", 8, "italic"), fg="#F59E0B", bg="#0B0F1A", wraplength=420).pack(anchor="w", pady=(0, 8))
+            tk.Label(body, text=notice, font=("Segoe UI", 8, "italic"), fg="#F59E0B", bg="#0B0F1A", wraplength=450).pack(anchor="w", pady=(0, 6))
 
-        tk.Label(body, text="OpenAI API Key (sk-...):", font=("Segoe UI", 9, "bold"), fg="#10B981", bg="#0B0F1A").pack(anchor="w")
+        # OpenAI Row
+        oa_hdr = tk.Frame(body, bg="#0B0F1A")
+        oa_hdr.pack(fill="x")
+        tk.Label(oa_hdr, text="OpenAI API Key (Powers GPT-4o):", font=("Segoe UI", 9, "bold"), fg="#10B981", bg="#0B0F1A").pack(side="left")
+        lbl_oa_status = tk.Label(oa_hdr, text="", font=("Segoe UI", 8), bg="#0B0F1A", fg="#8E9BB5")
+        lbl_oa_status.pack(side="right")
+
         entry_oa = tk.Entry(body, font=("Segoe UI", 9), bg="#161E33", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat", highlightthickness=1, highlightbackground="#222C42", show="*")
-        entry_oa.pack(fill="x", ipady=3, pady=(2, 10))
+        entry_oa.pack(fill="x", ipady=3, pady=(2, 4))
         entry_oa.insert(0, self.openai_key)
 
-        tk.Label(body, text="Gemini API Key (AIzaSy...):", font=("Segoe UI", 9, "bold"), fg="#8B5CF6", bg="#0B0F1A").pack(anchor="w")
+        def test_openai():
+            k = entry_oa.get().strip()
+            if not k:
+                lbl_oa_status.config(text="⚠ No key entered", fg="#F59E0B")
+                return
+            lbl_oa_status.config(text="Testing...", fg="#8E9BB5")
+            def _run():
+                try:
+                    r = requests.get("https://api.openai.com/v1/models", headers={"Authorization": f"Bearer {k}"}, timeout=6)
+                    if r.status_code == 200:
+                        # Check chat completion quota
+                        rc = requests.post("https://api.openai.com/v1/chat/completions", headers={"Authorization": f"Bearer {k}", "Content-Type": "application/json"}, json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1}, timeout=6)
+                        if rc.status_code == 200:
+                            lbl_oa_status.config(text="✓ Valid (GPT-4o Ready)", fg="#10B981")
+                        elif rc.status_code == 429:
+                            lbl_oa_status.config(text="⚠ Valid Key, but No Credits (429)", fg="#F59E0B")
+                        else:
+                            lbl_oa_status.config(text=f"⚠ Connected ({rc.status_code})", fg="#F59E0B")
+                    elif r.status_code == 401:
+                        lbl_oa_status.config(text="✗ Invalid Key (401)", fg="#EF4444")
+                    else:
+                        lbl_oa_status.config(text=f"Error {r.status_code}", fg="#EF4444")
+                except Exception as ex:
+                    lbl_oa_status.config(text="✗ Connection Failed", fg="#EF4444")
+            threading.Thread(target=_run, daemon=True).start()
+
+        btn_test_oa = tk.Button(body, text="Test OpenAI Key", font=("Segoe UI", 8), bg="#162035", fg="#10B981", activebackground="#222C42", activeforeground="#FFFFFF", relief="flat", padx=8, pady=1, cursor="hand2", command=test_openai)
+        btn_test_oa.pack(anchor="w", pady=(0, 10))
+
+        # Gemini Row
+        gm_hdr = tk.Frame(body, bg="#0B0F1A")
+        gm_hdr.pack(fill="x")
+        tk.Label(gm_hdr, text="Gemini API Key (Google AI Studio):", font=("Segoe UI", 9, "bold"), fg="#8B5CF6", bg="#0B0F1A").pack(side="left")
+        lbl_gm_status = tk.Label(gm_hdr, text="", font=("Segoe UI", 8), bg="#0B0F1A", fg="#8E9BB5")
+        lbl_gm_status.pack(side="right")
+
         entry_gm = tk.Entry(body, font=("Segoe UI", 9), bg="#161E33", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat", highlightthickness=1, highlightbackground="#222C42", show="*")
-        entry_gm.pack(fill="x", ipady=3, pady=(2, 12))
+        entry_gm.pack(fill="x", ipady=3, pady=(2, 4))
         entry_gm.insert(0, self.gemini_key)
 
+        def test_gemini():
+            gk = entry_gm.get().strip()
+            if not gk:
+                lbl_gm_status.config(text="⚠ No key entered", fg="#F59E0B")
+                return
+            lbl_gm_status.config(text="Testing...", fg="#8E9BB5")
+            def _run():
+                try:
+                    r = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={gk}", timeout=6)
+                    if r.status_code == 200:
+                        lbl_gm_status.config(text="✓ Active & Working", fg="#10B981")
+                    else:
+                        lbl_gm_status.config(text=f"✗ Error ({r.status_code})", fg="#EF4444")
+                except Exception:
+                    lbl_gm_status.config(text="✗ Connection Failed", fg="#EF4444")
+            threading.Thread(target=_run, daemon=True).start()
+
+        btn_test_gm = tk.Button(body, text="Test Gemini Key", font=("Segoe UI", 8), bg="#162035", fg="#8B5CF6", activebackground="#222C42", activeforeground="#FFFFFF", relief="flat", padx=8, pady=1, cursor="hand2", command=test_gemini)
+        btn_test_gm.pack(anchor="w", pady=(0, 12))
+
         btn_bar = tk.Frame(body, bg="#0B0F1A")
-        btn_bar.pack(fill="x")
+        btn_bar.pack(fill="x", pady=(4, 0))
 
         def save_and_close():
             self.openai_key = entry_oa.get().strip()
@@ -672,11 +733,55 @@ class ChirpApp:
             return self.transcribe_web_wav(wav_bytes)
 
     def transcribe_openai_wav(self, wav_bytes):
+        """Transcribes speech using OpenAI GPT-4o Audio / Whisper.
+        If search_mode is active, formats the transcription into an optimal web search query."""
+        if not self.openai_key:
+            raise Exception("OpenAI API key not configured")
+
+        b64_audio = base64.b64encode(wav_bytes).decode("utf-8")
+
+        # 1. Try GPT-4o Audio directly
+        try:
+            url_chat = "https://api.openai.com/v1/chat/completions"
+            headers_chat = {
+                "Authorization": f"Bearer {self.openai_key}",
+                "Content-Type": "application/json"
+            }
+            prompt_instruction = (
+                "Transcribe this speech accurately into plain text. Output ONLY the raw transcribed words with natural punctuation. Do not output commentary or quotes."
+                if not self.search_mode else
+                "Transcribe this speech and output ONLY a concise, high-relevance search query suitable for Google. No quotes or explanation."
+            )
+            payload_chat = {
+                "model": "gpt-4o-audio-preview",
+                "modalities": ["text"],
+                "audio": {"data": b64_audio, "format": "wav"},
+                "messages": [
+                    {"role": "user", "content": prompt_instruction}
+                ],
+                "temperature": 0.0,
+                "max_tokens": 300
+            }
+            resp_chat = requests.post(url_chat, headers=headers_chat, json=payload_chat, timeout=6)
+            if resp_chat.status_code == 200:
+                data = resp_chat.json()
+                choices = data.get("choices", [])
+                if choices:
+                    content = choices[0].get("message", {}).get("content", "").strip()
+                    if content:
+                        return content
+            elif resp_chat.status_code == 429:
+                raise Exception("OpenAI Quota Limit Reached (429)")
+        except Exception as e_gpt:
+            if "429" in str(e_gpt):
+                raise e_gpt
+
+        # 2. Try Whisper transcription API
         url = "https://api.openai.com/v1/audio/transcriptions"
         headers = {"Authorization": f"Bearer {self.openai_key}"}
         files = {"file": ("audio.wav", wav_bytes, "audio/wav")}
         data = {"model": "whisper-1"}
-        resp = requests.post(url, headers=headers, files=files, data=data, timeout=5)
+        resp = requests.post(url, headers=headers, files=files, data=data, timeout=6)
         if resp.status_code == 200:
             return resp.json().get("text", "").strip()
         else:
@@ -806,7 +911,7 @@ class ChirpApp:
 
         if self.engine == "openai":
             engine_col = COLOR_OPENAI_ACCENT
-            engine_tag = "OpenAI"
+            engine_tag = "GPT-4o"
         elif self.engine == "gemini":
             engine_col = COLOR_GEMINI_ACCENT
             engine_tag = "Gemini"
@@ -873,7 +978,7 @@ class ChirpApp:
         )
 
         # 4. Engine Selector Badge
-        badge_w = 54
+        badge_w = 56
         badge_h = 22
         badge_x1 = w - badge_w - 7
         badge_y1 = (h - badge_h) // 2

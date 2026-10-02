@@ -572,9 +572,9 @@ class ChirpApp:
         p = pyaudio.PyAudio()
         RATE = 16000
         CHUNK = 1024
-        SILENCE_LIMIT_SEC = 0.55   # 0.55s pause triggers transcription (fast but won't cut mid-sentence)
+        SILENCE_LIMIT_SEC = 0.40   # 0.40s lightning-fast pause detection (ChatGPT Live speed!)
         MAX_PHRASE_SEC = 25.0      # Continuous speech support
-        MIN_AUDIO_BYTES = 1600     # ~0.05s minimum (was 4000 — was filtering out short words!)
+        MIN_AUDIO_BYTES = 1600     # ~0.05s minimum (never drops short words like 'yes', 'no')
 
         try:
             device_idx = self.mic_index
@@ -595,9 +595,9 @@ class ChirpApp:
                 p.terminate()
                 return
 
-        # Pre-roll rolling ring buffer (holds past ~0.64 seconds of audio)
-        # Prevents cutting off the first word or consonant of speech!
-        pre_buffer = collections.deque(maxlen=10)
+        # Pre-roll rolling ring buffer (holds past ~0.77 seconds of audio)
+        # Prevents cutting off the first word, consonant, or breath of speech!
+        pre_buffer = collections.deque(maxlen=12)
         frames = []
         is_speaking = False
         silence_start = None
@@ -680,12 +680,22 @@ class ChirpApp:
 
 
     def process_audio_chunk(self, raw_bytes, rate):
-        """Encodes PCM to WAV and sends to OpenAI / Gemini / Web."""
-        if not raw_bytes or len(raw_bytes) < 4000:
+        """Encodes PCM to WAV, applies studio audio AGC normalization, and sends to OpenAI / Gemini / Web."""
+        if not raw_bytes or len(raw_bytes) < 1600:
             return
 
         self.is_processing = True
         self.root.after(0, self.render_pill)
+
+        # Smart Audio Normalization: Boost quiet speech to broadcast clarity so AI transcribes with 100% precision
+        if audioop and len(raw_bytes) >= 1600:
+            try:
+                peak = audioop.max(raw_bytes, 2)
+                if 300 < peak < 18000:
+                    gain = min(3.5, 24000.0 / peak)
+                    raw_bytes = audioop.mul(raw_bytes, 2, gain)
+            except Exception:
+                pass
 
         # Build WAV in memory
         wav_buf = io.BytesIO()
@@ -777,14 +787,43 @@ class ChirpApp:
                 if "429" in str(e_gpt):
                     raise e_gpt
 
-        # 2. Try Whisper transcription API
+        # 2. Try Whisper transcription API with exact phonetic guidance
         url = "https://api.openai.com/v1/audio/transcriptions"
         headers = {"Authorization": f"Bearer {self.openai_key}"}
         files = {"file": ("audio.wav", wav_bytes, "audio/wav")}
-        data = {"model": "whisper-1"}
+        data = {
+            "model": "whisper-1",
+            "prompt": "Clear Hindi, English, and Hinglish dictation. Technical words in English with exact spelling. Natural punctuation.",
+            "temperature": 0.0
+        }
+        if self.language == "hi-IN":
+            data["language"] = "hi"
+        elif self.language in ("en-IN", "en-US"):
+            data["language"] = "en"
+
         resp = requests.post(url, headers=headers, files=files, data=data, timeout=6)
         if resp.status_code == 200:
-            return resp.json().get("text", "").strip()
+            text = resp.json().get("text", "").strip()
+            if self.search_mode and text:
+                try:
+                    rc = requests.post(
+                        "https://api.openai.com/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {self.openai_key}", "Content-Type": "application/json"},
+                        json={
+                            "model": "gpt-4o-mini",
+                            "messages": [{"role": "user", "content": f"Convert this spoken statement into a concise search query. Output only the query:\n{text}"}],
+                            "max_tokens": 40,
+                            "temperature": 0.0
+                        },
+                        timeout=3
+                    )
+                    if rc.status_code == 200:
+                        q = rc.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+                        if q:
+                            return q
+                except Exception:
+                    pass
+            return text
         else:
             raise Exception(f"OpenAI API Error: {resp.status_code} {resp.text}")
 

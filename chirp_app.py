@@ -333,7 +333,7 @@ class ChirpApp:
 
         # Engine Selection
         self.menu.add_command(
-            label=f"{'●' if self.engine == 'openai' else '○'} Listen with OpenAI (GPT-4o)",
+            label=f"{'●' if self.engine == 'openai' else '○'} Listen with OpenAI (GPT-4o-mini)",
             command=lambda: self.set_engine("openai")
         )
         self.menu.add_command(
@@ -406,7 +406,7 @@ class ChirpApp:
     # --- API Keys Dialog ---
     def open_settings_modal(self, notice=""):
         win = tk.Toplevel(self.root)
-        win.title("Chirp — AI Settings (GPT-4o & Gemini)")
+        win.title("Chirp — AI Settings (GPT-4o-mini & Gemini)")
         win.geometry("490x350")
         win.resizable(False, False)
         win.configure(bg="#0B0F1A")
@@ -420,7 +420,7 @@ class ChirpApp:
         hdr = tk.Frame(win, bg="#121828", padx=18, pady=12)
         hdr.pack(fill="x")
         tk.Label(hdr, text="Chirp AI Configuration", font=("Segoe UI", 12, "bold"), fg="#FFFFFF", bg="#121828").pack(anchor="w")
-        tk.Label(hdr, text="Configure your OpenAI (GPT-4o) & Google Gemini API Keys", font=("Segoe UI", 8), fg="#8E9BB5", bg="#121828").pack(anchor="w")
+        tk.Label(hdr, text="Configure your OpenAI (GPT-4o-mini) & Google Gemini API Keys", font=("Segoe UI", 8), fg="#8E9BB5", bg="#121828").pack(anchor="w")
 
         body = tk.Frame(win, bg="#0B0F1A", padx=20, pady=12)
         body.pack(fill="both", expand=True)
@@ -431,7 +431,7 @@ class ChirpApp:
         # OpenAI Row
         oa_hdr = tk.Frame(body, bg="#0B0F1A")
         oa_hdr.pack(fill="x")
-        tk.Label(oa_hdr, text="OpenAI API Key (Powers GPT-4o):", font=("Segoe UI", 9, "bold"), fg="#10B981", bg="#0B0F1A").pack(side="left")
+        tk.Label(oa_hdr, text="OpenAI API Key (Powers GPT-4o-mini):", font=("Segoe UI", 9, "bold"), fg="#10B981", bg="#0B0F1A").pack(side="left")
         lbl_oa_status = tk.Label(oa_hdr, text="", font=("Segoe UI", 8), bg="#0B0F1A", fg="#8E9BB5")
         lbl_oa_status.pack(side="right")
 
@@ -449,10 +449,10 @@ class ChirpApp:
                 try:
                     r = requests.get("https://api.openai.com/v1/models", headers={"Authorization": f"Bearer {k}"}, timeout=6)
                     if r.status_code == 200:
-                        # Check chat completion quota
-                        rc = requests.post("https://api.openai.com/v1/chat/completions", headers={"Authorization": f"Bearer {k}", "Content-Type": "application/json"}, json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1}, timeout=6)
+                        # Check chat completion quota with gpt-4o-mini
+                        rc = requests.post("https://api.openai.com/v1/chat/completions", headers={"Authorization": f"Bearer {k}", "Content-Type": "application/json"}, json={"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1}, timeout=6)
                         if rc.status_code == 200:
-                            lbl_oa_status.config(text="✓ Valid (GPT-4o Ready)", fg="#10B981")
+                            lbl_oa_status.config(text="✓ Valid (GPT-4o-mini Ready)", fg="#10B981")
                         elif rc.status_code == 429:
                             lbl_oa_status.config(text="⚠ Valid Key, but No Credits (429)", fg="#F59E0B")
                         else:
@@ -740,41 +740,42 @@ class ChirpApp:
 
         b64_audio = base64.b64encode(wav_bytes).decode("utf-8")
 
-        # 1. Try GPT-4o Audio directly
-        try:
-            url_chat = "https://api.openai.com/v1/chat/completions"
-            headers_chat = {
-                "Authorization": f"Bearer {self.openai_key}",
-                "Content-Type": "application/json"
-            }
-            prompt_instruction = (
-                "Transcribe this speech accurately into plain text. Output ONLY the raw transcribed words with natural punctuation. Do not output commentary or quotes."
-                if not self.search_mode else
-                "Transcribe this speech and output ONLY a concise, high-relevance search query suitable for Google. No quotes or explanation."
-            )
-            payload_chat = {
-                "model": "gpt-4o-audio-preview",
-                "modalities": ["text"],
-                "audio": {"data": b64_audio, "format": "wav"},
-                "messages": [
-                    {"role": "user", "content": prompt_instruction}
-                ],
-                "temperature": 0.0,
-                "max_tokens": 300
-            }
-            resp_chat = requests.post(url_chat, headers=headers_chat, json=payload_chat, timeout=6)
-            if resp_chat.status_code == 200:
-                data = resp_chat.json()
-                choices = data.get("choices", [])
-                if choices:
-                    content = choices[0].get("message", {}).get("content", "").strip()
-                    if content:
-                        return content
-            elif resp_chat.status_code == 429:
-                raise Exception("OpenAI Quota Limit Reached (429)")
-        except Exception as e_gpt:
-            if "429" in str(e_gpt):
-                raise e_gpt
+        # 1. Try GPT-4o-mini Audio directly
+        for audio_model in ["gpt-4o-mini-audio-preview", "gpt-4o-audio-preview"]:
+            try:
+                url_chat = "https://api.openai.com/v1/chat/completions"
+                headers_chat = {
+                    "Authorization": f"Bearer {self.openai_key}",
+                    "Content-Type": "application/json"
+                }
+                prompt_instruction = (
+                    "Transcribe this speech accurately into plain text. Output ONLY the raw transcribed words with natural punctuation. Do not output commentary or quotes."
+                    if not self.search_mode else
+                    "Transcribe this speech and output ONLY a concise, high-relevance search query suitable for Google. No quotes or explanation."
+                )
+                payload_chat = {
+                    "model": audio_model,
+                    "modalities": ["text"],
+                    "audio": {"data": b64_audio, "format": "wav"},
+                    "messages": [
+                        {"role": "user", "content": prompt_instruction}
+                    ],
+                    "temperature": 0.0,
+                    "max_tokens": 300
+                }
+                resp_chat = requests.post(url_chat, headers=headers_chat, json=payload_chat, timeout=6)
+                if resp_chat.status_code == 200:
+                    data = resp_chat.json()
+                    choices = data.get("choices", [])
+                    if choices:
+                        content = choices[0].get("message", {}).get("content", "").strip()
+                        if content:
+                            return content
+                elif resp_chat.status_code == 429:
+                    raise Exception("OpenAI Quota Limit Reached (429)")
+            except Exception as e_gpt:
+                if "429" in str(e_gpt):
+                    raise e_gpt
 
         # 2. Try Whisper transcription API
         url = "https://api.openai.com/v1/audio/transcriptions"
@@ -911,7 +912,7 @@ class ChirpApp:
 
         if self.engine == "openai":
             engine_col = COLOR_OPENAI_ACCENT
-            engine_tag = "GPT-4o"
+            engine_tag = "4o-mini"
         elif self.engine == "gemini":
             engine_col = COLOR_GEMINI_ACCENT
             engine_tag = "Gemini"
